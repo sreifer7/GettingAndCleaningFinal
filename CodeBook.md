@@ -32,15 +32,21 @@ mergedData: File name that holds the merger of the two above data sets
 **Transformations of All Data**
 
 ##Add activity data to main data
-activityTest <- read.table("./UCI HAR Dataset/test/y_test.txt")
-activityTrain <- read.table ("./UCI HAR Dataset/train/y_train.txt")
+activityTest <- read.table("./UCI HAR Dataset/test/y_test.txt") ##reading in the y_test.txt doc
+activityTrain <- read.table ("./UCI HAR Dataset/train/y_train.txt") ##reading in the y_train.txt doc
 
-combinedTest <- cbind(activityTest, testData)  ##combining activity to corresponding data
-combinedTrain <- cbind(activityTrain, trainData) ##combining activity to corresponding data
+subjectTest <- read.table("./UCI HAR Dataset/test/subject_test.txt")  ##reading in the subject_test.txt doc
+subjectTrain <- read.table("./UCI HAR Dataset/train/subject_train.txt") ##reading in the subject_test.txt doc
+
+subjectActivityTest <- cbind(activityTest, subjectTest) ##combining test data for subject & activity
+subjectActivityTrain <- cbind(activityTrain, subjectTrain) ##combining train data for subject & Activing
+
+combinedTest <- cbind(subjectActivityTest, testData) ##combining data frames with newly combined data columns
+combinedTrain <- cbind(subjectActivityTrain, trainData) ##combining data frames with newly combined data columns
 
 
 ##Turn into Data Frame
-dfTest <- data.frame(combinedTest)
+dfTest <- data.frame(combinedTest) 
 dfTrain <- data.frame(combinedTrain)
 
 ## Merge data
@@ -54,6 +60,7 @@ features2 <- as.character(features) ##character vector of column names
 
                         ##selectedNames <- select(columnNames, V2)     ##subsets our row names from DF
 activitySaved <- select(mergedData, V1)      ##saves order of activity Data for split
+subjectSaved <- select(mergedData, V1.1)     ##saves order of subject data for split
 nonActivity <- select(mergedData, V1.1:V561) ## selects all of the data series except for activity
 
 ##Extract only the mean and standard deviation measurements 
@@ -68,18 +75,23 @@ columnNames(forNames) <- cNames             ##assign names to columns
 namedData <- cbind(activitySaved,forNames) ## add activity column back in 
 namedData <- rename(namedData, Activity = V1)  ##rename first column activity
 
+namedSubjectData <- cbind(subjectSaved,namedData)  ##add subject column back in 
+namedSubjectData <- rename(namedSubjectData, Subject = V1.1) ##rename first column Subject
+
 ##Use descriptive activity names to name activity in data set
-namedData$Activity[namedData$Activity == "1"] <- "walking"
-namedData$Activity[namedData$Activity == "2"] <- "walking_upstairs"
-namedData$Activity[namedData$Activity == "3"] <- "walking_downstairs"
-namedData$Activity[namedData$Activity == "4"] <- "sitting"
-namedData$Activity[namedData$Activity == "5"] <- "standing"
-namedData$Activity[namedData$Activity == "6"] <- "laying"
+namedSubjectData$Activity[namedData$Activity == "1"] <- "walking"
+namedSubjectData$Activity[namedData$Activity == "2"] <- "walking_upstairs"
+namedSubjectData$Activity[namedData$Activity == "3"] <- "walking_downstairs"
+namedSubjectData$Activity[namedData$Activity == "4"] <- "sitting"
+namedSubjectData$Activity[namedData$Activity == "5"] <- "standing"
+namedSubjectData$Activity[namedData$Activity == "6"] <- "laying"
 
 ##From the data set in step 4, create a second, independent tidy data set with the average of each variable for each 
 ##activity and each subject.
 install.packages("reshape2") ##automatically installs dependency "plyr"as well 
 library(reshape2)  ##load package into R
 
-meltedData <- melt(namedData, id = "Activity", measure.vars = cNames) ##make the data molten 
-dt2 <- dcast(meltedData, Activity ~ variable, mean) ## takes mean of every variable by activity value
+meltedData <- melt(namedSubjectData, id = c("Activity","Subject"), measure.vars = cNames) ##make the data molten 
+dt2 <- dcast(meltedData, Activity + Subject ~ variable, mean) ##Cast it back out into tidy data requirements
+
+write.table(dt2, file = "tidyr2.txt")  ##write out the table into a text file
